@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { FaWhatsapp, FaCross, FaGhost, FaStar } from "react-icons/fa";
 import { GiCrossedSwords } from "react-icons/gi";
 import { GroupedContentCard } from "@/components/ContentCard";
-import supabase from "@/lib/supabaseClient";
+import { supabase } from "@/lib/supabaseClient";
 
 export default async function Home() {
   const { data: historia } = await supabase
