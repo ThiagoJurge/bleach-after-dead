@@ -178,23 +178,29 @@ export function GroupedContentCard({
               )}
             >
               <div className="flex flex-col md:flex-row gap-6 w-full items-start">
-                {/* Imagem com efeito hover */}
-                <div className="md:w-1/4 relative min-h-[120px] overflow-hidden rounded-lg">
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent z-10 opacity-70 group-hover/item:opacity-50 transition-opacity duration-300"></div>
-                  <div className="absolute inset-0 bg-black/30 z-10 group-hover/item:bg-black/20 transition-all duration-300"></div>
-                  <UnsafeImage
-                    src={item.image}
-                    alt={item.title}
-                    width={300}
-                    height={200}
-                    className="w-full h-full object-cover inset-0 group-hover/item:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute bottom-3 left-3 z-20">
-                    <span className="text-xs font-bold uppercase tracking-wider px-2 py-1 rounded bg-black/70 backdrop-blur-sm">
-                      {item.title || categoria}
-                    </span>
-                  </div>
-                </div>
+                {categoria != "Geral" ? (
+                  <>
+                    {/* Imagem com efeito hover */}
+                    <div className="md:w-1/4 relative min-h-[120px] overflow-hidden rounded-lg">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent z-10 opacity-70 group-hover/item:opacity-50 transition-opacity duration-300"></div>
+                      <div className="absolute inset-0 bg-black/30 z-10 group-hover/item:bg-black/20 transition-all duration-300"></div>
+                      <UnsafeImage
+                        src={item.image}
+                        alt={item.title}
+                        width={300}
+                        height={200}
+                        className="w-full h-full object-cover inset-0 group-hover/item:scale-105 transition-transform duration-500"
+                      />
+                      <div className="absolute bottom-3 left-3 z-20">
+                        <span className="text-xs font-bold uppercase tracking-wider px-2 py-1 rounded bg-black/70 backdrop-blur-sm">
+                          {item.title || categoria}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  item.title
+                )}
 
                 {/* Ícone de acordeão personalizado */}
                 <div className="ml-auto hidden md:block">

@@ -5,6 +5,13 @@ import { supabase } from "@/lib/supabaseClient";
 // import UserGreetText from "@/components/UserGreetText";
 import LoginButton from "@/components/LoginLogoutButton";
 
+type Sistema = {
+  title: string;
+  response: string;
+  categoria: string;
+  command: string;
+};
+
 export default async function Home() {
   const { data: historia } = await supabase
     .from("comandos")
@@ -15,15 +22,26 @@ export default async function Home() {
   const { data: sistemas } = await supabase
     .from("comandos")
     .select("title, response, categoria, command")
-    .neq("categoria", "Geral")
     .order("categoria")
     .order("title");
 
-  const sistemasAgrupados = sistemas?.reduce((acc, sistema) => {
+  const sistemasOrdenados = sistemas?.sort((a, b) => {
+    if (a.categoria === "Geral" && b.categoria !== "Geral") return -1;
+    if (a.categoria !== "Geral" && b.categoria === "Geral") return 1;
+    if (a.categoria < b.categoria) return -1;
+    if (a.categoria > b.categoria) return 1;
+    if (a.title < b.title) return -1;
+    if (a.title > b.title) return 1;
+    return 0;
+  });
+
+  const sistemasAgrupados = sistemasOrdenados?.reduce<
+    Record<string, Sistema[]>
+  >((acc, sistema) => {
     if (!acc[sistema.categoria]) acc[sistema.categoria] = [];
     acc[sistema.categoria].push(sistema);
     return acc;
-  }, {} as Record<string, typeof sistemas>);
+  }, {});
 
   return (
     <div className="min-h-screen flex flex-col bg-black text-gray-100">
