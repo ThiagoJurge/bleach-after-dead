@@ -20,10 +20,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload, CheckCircle, AlertCircle, Pencil } from "lucide-react";
+import {
+  Upload,
+  CheckCircle,
+  AlertCircle,
+  Pencil,
+  Trash,
+  ArrowLeft,
+} from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 interface FormData {
   id?: string;
@@ -50,6 +71,7 @@ export default function ComandosForm() {
   const [comandos, setComandos] = useState<FormData[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [newCategory, setNewCategory] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchCategories = async () => {
     const { data, error } = await supabase.from("comandos").select("categoria");
@@ -203,165 +225,291 @@ export default function ComandosForm() {
     setImagePreview(null);
     setSelectedFile(null);
     setNewCategory("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this command?")) return;
+
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from("comandos").delete().eq("id", id);
+      if (error) throw error;
+
+      setMessage({ type: "success", text: "Command deleted successfully" });
+      fetchComandos();
+      fetchCategories();
+    } catch (error: any) {
+      setMessage({
+        type: "error",
+        text: error.message || "Error deleting command",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({ command: "", title: "", categoria: "", response: "" });
+    setNewCategory("");
+    setSelectedFile(null);
+    setImagePreview(null);
+    (document.getElementById("image-upload") as HTMLInputElement).value = "";
   };
 
   return (
-    <Card className="w-full space-y-6">
-      <CardHeader>
-        <CardTitle>
-          {formData.id ? "Edit Command" : "Add New Command"}
-        </CardTitle>
-        <CardDescription className="flex justify-between">
-          Create or update a command with optional image upload
-          <Link href={"/"}>
-            <Button variant={"link"}>Voltar</Button>
-          </Link>
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="command">Command *</Label>
-            <Input
-              id="command"
-              type="text"
-              placeholder="e.g., ls -la"
-              value={formData.command}
-              onChange={(e) => handleInputChange("command", e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
-            <Input
-              id="title"
-              type="text"
-              placeholder="e.g., List all files"
-              value={formData.title}
-              onChange={(e) => handleInputChange("title", e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="categoria">Category *</Label>
-            <Select
-              value={formData.categoria}
-              onValueChange={(value) => handleInputChange("categoria", value)}
-              disabled={!!newCategory}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              placeholder="Or type a new category"
-              value={newCategory}
-              onChange={(e) => {
-                setNewCategory(e.target.value);
-                if (e.target.value)
-                  setFormData((f) => ({ ...f, categoria: "" }));
-              }}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="response">Response *</Label>
-            <Textarea
-              id="response"
-              placeholder="Describe the command usage"
-              value={formData.response}
-              onChange={(e) => handleInputChange("response", e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="image-upload">Command Screenshot (Optional)</Label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <input
-                id="image-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-              <label htmlFor="image-upload" className="cursor-pointer block">
-                <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <p className="text-sm text-gray-600 mb-2">
-                  Click to upload or drag image
-                </p>
-                <p className="text-xs text-gray-500">PNG, JPG, GIF up to 5MB</p>
-              </label>
-            </div>
-            {imagePreview && (
-              <div className="mt-4">
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  className="max-w-full h-48 object-contain rounded-lg border"
-                />
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Form Section */}
+        <div className="lg:w-1/2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>
+                    {formData.id ? "Edit Command" : "Add New Command"}
+                  </CardTitle>
+                  <CardDescription>
+                    {formData.id
+                      ? "Update the command details"
+                      : "Create a new command with optional image"}
+                  </CardDescription>
+                </div>
+                <Link href={"/"}>
+                  <Button variant="ghost" size="icon">
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                </Link>
               </div>
-            )}
-          </div>
-          {message && (
-            <Alert
-              className={
-                message.type === "error"
-                  ? "border-red-200 bg-red-50"
-                  : "border-green-200 bg-green-50"
-              }
-            >
-              {message.type === "error" ? (
-                <AlertCircle className="h-4 w-4 text-red-600" />
-              ) : (
-                <CheckCircle className="h-4 w-4 text-green-600" />
-              )}
-              <AlertDescription
-                className={
-                  message.type === "error" ? "text-red-800" : "text-green-800"
-                }
-              >
-                {message.text}
-              </AlertDescription>
-            </Alert>
-          )}
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading
-              ? "Saving..."
-              : formData.id
-              ? "Update Command"
-              : "Create Command"}
-          </Button>
-        </form>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="command">Command *</Label>
+                    <Input
+                      id="command"
+                      type="text"
+                      placeholder="e.g., ls -la"
+                      value={formData.command}
+                      onChange={(e) =>
+                        handleInputChange("command", e.target.value)
+                      }
+                      required
+                    />
+                  </div>
 
-        {/* Lista de comandos existentes */}
-        <div className="pt-10 space-y-4">
-          <h2 className="text-lg font-semibold">Existing Commands</h2>
-          {comandos.map((cmd) => (
-            <div
-              key={cmd.id}
-              className="flex justify-between items-center border rounded p-4"
-            >
-              <div>
-                <p className="font-medium">{cmd.command}</p>
-                <p className="text-sm text-gray-500">{cmd.title}</p>
-              </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => handleEdit(cmd)}
-              >
-                <Pencil className="w-4 h-4" />
-              </Button>
-            </div>
-          ))}
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Title *</Label>
+                    <Input
+                      id="title"
+                      type="text"
+                      placeholder="e.g., List all files"
+                      value={formData.title}
+                      onChange={(e) =>
+                        handleInputChange("title", e.target.value)
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="categoria">Category *</Label>
+                    <div className="flex flex-col gap-2">
+                      <Select
+                        value={formData.categoria}
+                        onValueChange={(value) =>
+                          handleInputChange("categoria", value)
+                        }
+                        disabled={!!newCategory}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Input
+                        placeholder="Or type a new category"
+                        value={newCategory}
+                        onChange={(e) => {
+                          setNewCategory(e.target.value);
+                          if (e.target.value)
+                            setFormData((f) => ({ ...f, categoria: "" }));
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="response">Response *</Label>
+                    <Textarea
+                      id="response"
+                      placeholder="Describe the command usage"
+                      value={formData.response}
+                      onChange={(e) =>
+                        handleInputChange("response", e.target.value)
+                      }
+                      className="min-h-[120px]"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="image-upload">
+                      Command Screenshot (Optional)
+                    </Label>
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center hover:border-primary transition-colors">
+                      <input
+                        id="image-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="image-upload"
+                        className="cursor-pointer block"
+                      >
+                        <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          Click to upload or drag image
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                          PNG, JPG, GIF up to 5MB
+                        </p>
+                      </label>
+                    </div>
+                    {imagePreview && (
+                      <div className="mt-4">
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="max-w-full h-48 object-contain rounded-lg border"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {message && (
+                  <Alert
+                    variant={
+                      message.type === "error" ? "destructive" : "default"
+                    }
+                    className="mt-4"
+                  >
+                    {message.type === "error" ? (
+                      <AlertCircle className="h-4 w-4" />
+                    ) : (
+                      <CheckCircle className="h-4 w-4" />
+                    )}
+                    <AlertDescription>{message.text}</AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="flex gap-2">
+                  <Button type="submit" className="flex-1" disabled={isLoading}>
+                    {isLoading
+                      ? "Saving..."
+                      : formData.id
+                      ? "Update Command"
+                      : "Create Command"}
+                  </Button>
+                  {formData.id && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={resetForm}
+                      disabled={isLoading}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Commands List Section */}
+        <div className="lg:w-1/2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Existing Commands</CardTitle>
+              <CardDescription>
+                {comandos.length} commands available
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Command</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {comandos.map((cmd) => (
+                      <TableRow key={cmd.id}>
+                        <TableCell className="font-medium">
+                          <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                            {cmd.command}
+                          </code>
+                        </TableCell>
+                        <TableCell>{cmd.title}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{cmd.categoria}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right space-x-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(cmd)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => cmd.id && handleDelete(cmd.id)}
+                                disabled={isDeleting}
+                              >
+                                <Trash className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete</TooltipContent>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              {comandos.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  No commands found. Create your first one!
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
   );
 }
