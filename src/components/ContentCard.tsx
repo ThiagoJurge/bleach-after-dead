@@ -7,10 +7,9 @@ import {
 } from "@/components/ui/accordion";
 import UnsafeImage from "./UnsafeImage";
 import { cn } from "@/lib/utils";
-import { GiKatana, GiCrossedSwords } from "react-icons/gi";
+import { GiCrossedSwords } from "react-icons/gi";
 import { FaCross, FaGem, FaMask, FaChevronDown } from "react-icons/fa";
 import { RiSwordFill } from "react-icons/ri";
-import { IoMdFlame } from "react-icons/io";
 
 interface ContentCardProps {
   id: string;

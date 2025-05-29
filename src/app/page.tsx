@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
-import { FaWhatsapp, FaCross, FaGhost, FaStar } from "react-icons/fa";
-import { GiCrossedSwords } from "react-icons/gi";
+import { FaWhatsapp, FaCross, FaStar } from "react-icons/fa";
 import { GroupedContentCard } from "@/components/ContentCard";
 import { supabase } from "@/lib/supabaseClient";
+// import UserGreetText from "@/components/UserGreetText";
+import LoginButton from "@/components/LoginLogoutButton";
 
 export default async function Home() {
   const { data: historia } = await supabase
@@ -35,14 +36,11 @@ export default async function Home() {
       <header className="h-16 shrink-0 border-b border-gray-800 px-6 sticky top-0 bg-black/80 backdrop-blur-sm z-50">
         <div className="h-full flex items-center justify-between max-w-6xl mx-auto">
           <div className="flex items-center gap-3">
-            <div className="w-6 h-6 bg-blue-800 rounded-full flex items-center justify-center">
-              <FaGhost className="text-white text-xs" />
-            </div>
             <h1 className="font-bold text-xl text-blue-400">
               Bleach After Dead
             </h1>
           </div>
-
+          {/* <UserGreetText /> */}
           <div className="flex items-center gap-2">
             {["historia", "sistemas"].map((section) => (
               <a
@@ -117,6 +115,9 @@ export default async function Home() {
         <div className="container mx-auto px-4">
           <p>© {new Date().getFullYear()} Bleach After Dead</p>
           <p className="mt-1">Baseado no universo de Bleach</p>
+          <div>
+            <LoginButton />
+          </div>
         </div>
       </footer>
     </div>

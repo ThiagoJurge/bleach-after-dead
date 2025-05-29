@@ -1,8 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
-import dotenv from "dotenv";
-dotenv.config();
+// lib/supabaseClient.ts
+import { createBrowserClient } from "@supabase/ssr";
 
-export const supabase = createClient(
-  process.env.SUPABASE_URL as string,
-  process.env.SUPABASE_KEY as string
+export const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_KEY!
 );
