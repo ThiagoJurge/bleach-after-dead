@@ -27,6 +27,8 @@ import {
   Pencil,
   Trash,
   ArrowLeft,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabaseClient";
@@ -72,13 +74,27 @@ export default function ComandosForm() {
   const [categories, setCategories] = useState<string[]>([]);
   const [newCategory, setNewCategory] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
 
   const fetchCategories = async () => {
     const { data, error } = await supabase.from("comandos").select("categoria");
     if (!error && data) {
       const unique = [...new Set(data.map((d) => d.categoria))];
       setCategories(unique);
+      // Inicializa todas as categorias como expandidas
+      const initialExpanded = unique.reduce((acc, cat) => {
+        acc[cat] = true;
+        return acc;
+      }, {} as Record<string, boolean>);
+      setExpandedCategories(initialExpanded);
     }
+  };
+
+  const toggleCategory = (category: string) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
   };
 
   const fetchComandos = async () => {
@@ -102,11 +118,11 @@ export default function ComandosForm() {
     const file = event.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setMessage({ type: "error", text: "Please select a valid image file" });
+      setMessage({ type: "error", text: "Por favor selecione um arquivo de imagem válido" });
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
-      setMessage({ type: "error", text: "File size must be less than 5MB" });
+      setMessage({ type: "error", text: "O arquivo deve ser menor que 5MB" });
       return;
     }
     setSelectedFile(file);
@@ -133,7 +149,7 @@ export default function ComandosForm() {
           ctx?.drawImage(img, 0, 0);
           canvas.toBlob(
             async (blob) => {
-              if (!blob) return reject("Failed to convert image");
+              if (!blob) return reject("Falha ao converter imagem");
               const { data, error } = await supabase.storage
                 .from("images")
                 .upload(`assets/${fileName}`, blob, {
@@ -147,11 +163,11 @@ export default function ComandosForm() {
             0.9
           );
         };
-        img.onerror = () => reject("Failed to load image");
+        img.onerror = () => reject("Falha ao carregar imagem");
         img.src = URL.createObjectURL(file);
       });
     } catch (err) {
-      console.error("Image upload failed", err);
+      console.error("Falha no upload da imagem", err);
       return null;
     }
   };
@@ -168,7 +184,7 @@ export default function ComandosForm() {
       !categoria ||
       !formData.response
     ) {
-      setMessage({ type: "error", text: "Please fill in all required fields" });
+      setMessage({ type: "error", text: "Por favor preencha todos os campos obrigatórios" });
       setIsLoading(false);
       return;
     }
@@ -177,7 +193,7 @@ export default function ComandosForm() {
       let imagePath = null;
       if (selectedFile) {
         imagePath = await uploadImage(selectedFile, formData.command);
-        if (!imagePath) throw new Error("Image upload failed");
+        if (!imagePath) throw new Error("Falha no upload da imagem");
       }
 
       const payload = {
@@ -201,7 +217,7 @@ export default function ComandosForm() {
 
       setMessage({
         type: "success",
-        text: `Command ${formData.id ? "updated" : "created"} successfully!`,
+        text: `Comando ${formData.id ? "atualizado" : "criado"} com sucesso!`,
       });
       setFormData({ command: "", title: "", categoria: "", response: "" });
       setNewCategory("");
@@ -213,7 +229,7 @@ export default function ComandosForm() {
     } catch (error: any) {
       setMessage({
         type: "error",
-        text: error.message || "Error saving command",
+        text: error.message || "Erro ao salvar comando",
       });
     } finally {
       setIsLoading(false);
@@ -229,20 +245,20 @@ export default function ComandosForm() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this command?")) return;
+    if (!confirm("Tem certeza que deseja excluir este comando?")) return;
 
     setIsDeleting(true);
     try {
       const { error } = await supabase.from("comandos").delete().eq("id", id);
       if (error) throw error;
 
-      setMessage({ type: "success", text: "Command deleted successfully" });
+      setMessage({ type: "success", text: "Comando excluído com sucesso" });
       fetchComandos();
       fetchCategories();
     } catch (error: any) {
       setMessage({
         type: "error",
-        text: error.message || "Error deleting command",
+        text: error.message || "Erro ao excluir comando",
       });
     } finally {
       setIsDeleting(false);
@@ -257,26 +273,34 @@ export default function ComandosForm() {
     (document.getElementById("image-upload") as HTMLInputElement).value = "";
   };
 
+  const comandosPorCategoria = comandos.reduce((acc, cmd) => {
+    if (!acc[cmd.categoria]) {
+      acc[cmd.categoria] = [];
+    }
+    acc[cmd.categoria].push(cmd);
+    return acc;
+  }, {} as Record<string, FormData[]>);
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 bg-[#0a0a0a] text-[#e0e0e0]">
       <div className="flex flex-col lg:flex-row gap-8">
-        {/* Form Section */}
+        {/* Seção do Formulário */}
         <div className="lg:w-1/2">
-          <Card>
+          <Card className="bg-[#1a1a1a] border-[#333]">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>
-                    {formData.id ? "Edit Command" : "Add New Command"}
+                  <CardTitle className="text-[#4a9be6]">
+                    {formData.id ? "Editar Comando" : "Adicionar Novo Comando"}
                   </CardTitle>
-                  <CardDescription>
+                  <CardDescription className="text-[#888]">
                     {formData.id
-                      ? "Update the command details"
-                      : "Create a new command with optional image"}
+                      ? "Atualize os detalhes do comando"
+                      : "Crie um novo comando com imagem opcional"}
                   </CardDescription>
                 </div>
                 <Link href={"/"}>
-                  <Button variant="ghost" size="icon">
+                  <Button variant="ghost" size="icon" className="text-[#4a9be6] hover:bg-[#333]">
                     <ArrowLeft className="h-4 w-4" />
                   </Button>
                 </Link>
@@ -286,35 +310,37 @@ export default function ComandosForm() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="command">Command *</Label>
+                    <Label htmlFor="command" className="text-[#e0e0e0]">Comando *</Label>
                     <Input
                       id="command"
                       type="text"
-                      placeholder="e.g., ls -la"
+                      placeholder="ex: ls -la"
                       value={formData.command}
                       onChange={(e) =>
                         handleInputChange("command", e.target.value)
                       }
+                      className="bg-[#222] border-[#333] text-[#e0e0e0]"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="title">Title *</Label>
+                    <Label htmlFor="title" className="text-[#e0e0e0]">Título *</Label>
                     <Input
                       id="title"
                       type="text"
-                      placeholder="e.g., List all files"
+                      placeholder="ex: Listar todos os arquivos"
                       value={formData.title}
                       onChange={(e) =>
                         handleInputChange("title", e.target.value)
                       }
+                      className="bg-[#222] border-[#333] text-[#e0e0e0]"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="categoria">Category *</Label>
+                    <Label htmlFor="categoria" className="text-[#e0e0e0]">Categoria *</Label>
                     <div className="flex flex-col gap-2">
                       <Select
                         value={formData.categoria}
@@ -323,48 +349,49 @@ export default function ComandosForm() {
                         }
                         disabled={!!newCategory}
                       >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a category" />
+                        <SelectTrigger className="bg-[#222] border-[#333] text-[#e0e0e0]">
+                          <SelectValue placeholder="Selecione uma categoria" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-[#222] border-[#333] text-[#e0e0e0]">
                           {categories.map((cat) => (
-                            <SelectItem key={cat} value={cat}>
+                            <SelectItem key={cat} value={cat} className="hover:bg-[#333]">
                               {cat}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <Input
-                        placeholder="Or type a new category"
+                        placeholder="Ou digite uma nova categoria"
                         value={newCategory}
                         onChange={(e) => {
                           setNewCategory(e.target.value);
                           if (e.target.value)
                             setFormData((f) => ({ ...f, categoria: "" }));
                         }}
+                        className="bg-[#222] border-[#333] text-[#e0e0e0]"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="response">Response *</Label>
+                    <Label htmlFor="response" className="text-[#e0e0e0]">Resposta *</Label>
                     <Textarea
                       id="response"
-                      placeholder="Describe the command usage"
+                      placeholder="Descreva o uso do comando"
                       value={formData.response}
                       onChange={(e) =>
                         handleInputChange("response", e.target.value)
                       }
-                      className="min-h-[120px]"
+                      className="min-h-[120px] bg-[#222] border-[#333] text-[#e0e0e0]"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="image-upload">
-                      Command Screenshot (Optional)
+                    <Label htmlFor="image-upload" className="text-[#e0e0e0]">
+                      Captura de Tela do Comando (Opcional)
                     </Label>
-                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg p-6 text-center hover:border-primary transition-colors">
+                    <div className="border-2 border-dashed border-[#333] rounded-lg p-6 text-center hover:border-[#4a9be6] transition-colors">
                       <input
                         id="image-upload"
                         type="file"
@@ -376,12 +403,12 @@ export default function ComandosForm() {
                         htmlFor="image-upload"
                         className="cursor-pointer block"
                       >
-                        <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                          Click to upload or drag image
+                        <Upload className="mx-auto h-12 w-12 text-[#4a9be6] mb-4" />
+                        <p className="text-sm text-[#888] mb-2">
+                          Clique para enviar ou arraste a imagem
                         </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-500">
-                          PNG, JPG, GIF up to 5MB
+                        <p className="text-xs text-[#555]">
+                          PNG, JPG, GIF até 5MB
                         </p>
                       </label>
                     </div>
@@ -390,7 +417,7 @@ export default function ComandosForm() {
                         <img
                           src={imagePreview}
                           alt="Preview"
-                          className="max-w-full h-48 object-contain rounded-lg border"
+                          className="max-w-full h-48 object-contain rounded-lg border border-[#333]"
                         />
                       </div>
                     )}
@@ -402,24 +429,28 @@ export default function ComandosForm() {
                     variant={
                       message.type === "error" ? "destructive" : "default"
                     }
-                    className="mt-4"
+                    className="mt-4 border-[#333]"
                   >
                     {message.type === "error" ? (
                       <AlertCircle className="h-4 w-4" />
                     ) : (
-                      <CheckCircle className="h-4 w-4" />
+                      <CheckCircle className="h-4 w-4 text-[#4a9be6]" />
                     )}
                     <AlertDescription>{message.text}</AlertDescription>
                   </Alert>
                 )}
 
                 <div className="flex gap-2">
-                  <Button type="submit" className="flex-1" disabled={isLoading}>
+                  <Button 
+                    type="submit" 
+                    className="flex-1 bg-[#4a9be6] hover:bg-[#3a8bd6] text-white"
+                    disabled={isLoading}
+                  >
                     {isLoading
-                      ? "Saving..."
+                      ? "Salvando..."
                       : formData.id
-                      ? "Update Command"
-                      : "Create Command"}
+                      ? "Atualizar Comando"
+                      : "Criar Comando"}
                   </Button>
                   {formData.id && (
                     <Button
@@ -427,8 +458,9 @@ export default function ComandosForm() {
                       variant="outline"
                       onClick={resetForm}
                       disabled={isLoading}
+                      className="border-[#333] text-[#e0e0e0] hover:bg-[#333]"
                     >
-                      Cancel
+                      Cancelar
                     </Button>
                   )}
                 </div>
@@ -437,73 +469,101 @@ export default function ComandosForm() {
           </Card>
         </div>
 
-        {/* Commands List Section */}
+        {/* Seção de Lista de Comandos */}
         <div className="lg:w-1/2">
-          <Card>
+          <Card className="bg-[#1a1a1a] border-[#333]">
             <CardHeader>
-              <CardTitle>Existing Commands</CardTitle>
-              <CardDescription>
-                {comandos.length} commands available
+              <CardTitle className="text-[#4a9be6]">Comandos Existentes</CardTitle>
+              <CardDescription className="text-[#888]">
+                {comandos.length} comandos em {categories.length} categorias
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Command</TableHead>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {comandos.map((cmd) => (
-                      <TableRow key={cmd.id}>
-                        <TableCell className="font-medium">
-                          <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                            {cmd.command}
-                          </code>
-                        </TableCell>
-                        <TableCell>{cmd.title}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{cmd.categoria}</Badge>
-                        </TableCell>
-                        <TableCell className="text-right space-x-1">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEdit(cmd)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Edit</TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => cmd.id && handleDelete(cmd.id)}
-                                disabled={isDeleting}
-                              >
-                                <Trash className="h-4 w-4 text-red-600" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Delete</TooltipContent>
-                          </Tooltip>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-              {comandos.length === 0 && (
-                <div className="text-center py-8 text-gray-500">
-                  No commands found. Create your first one!
+              {categories.length === 0 ? (
+                <div className="text-center py-8 text-[#888]">
+                  Nenhum comando encontrado. Crie o primeiro!
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {categories.map((categoria) => (
+                    <div key={categoria} className="border border-[#333] rounded-lg overflow-hidden">
+                      <div 
+                        className="flex items-center justify-between p-4 bg-[#222] cursor-pointer"
+                        onClick={() => toggleCategory(categoria)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Badge variant="secondary" className="bg-[#4a9be6]">
+                            {comandosPorCategoria[categoria]?.length || 0}
+                          </Badge>
+                          <span className="font-medium text-[#e0e0e0]">{categoria}</span>
+                        </div>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-[#4a9be6] hover:bg-[#333]"
+                        >
+                          {expandedCategories[categoria] ? (
+                            <ChevronUp className="h-4 w-4" />
+                          ) : (
+                            <ChevronDown className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+                      
+                      {expandedCategories[categoria] && (
+                        <Table className="border-t border-[#333]">
+                          <TableHeader className="bg-[#222]">
+                            <TableRow>
+                              <TableHead className="text-[#e0e0e0]">Comando</TableHead>
+                              <TableHead className="text-[#e0e0e0]">Título</TableHead>
+                              <TableHead className="text-right text-[#e0e0e0]">Ações</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {comandosPorCategoria[categoria]?.map((cmd) => (
+                              <TableRow key={cmd.id} className="border-[#333] hover:bg-[#222]">
+                                <TableCell className="font-medium">
+                                  <code className="bg-[#222] px-2 py-1 rounded text-[#4a9be6]">
+                                    {cmd.command}
+                                  </code>
+                                </TableCell>
+                                <TableCell className="text-[#e0e0e0]">{cmd.title}</TableCell>
+                                <TableCell className="text-right space-x-1">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => handleEdit(cmd)}
+                                        className="text-[#4a9be6] hover:bg-[#333]"
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-[#222] text-[#e0e0e0] border-[#333]">Editar</TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => cmd.id && handleDelete(cmd.id)}
+                                        disabled={isDeleting}
+                                        className="text-red-500 hover:bg-[#333]"
+                                      >
+                                        <Trash className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="bg-[#222] text-[#e0e0e0] border-[#333]">Excluir</TooltipContent>
+                                  </Tooltip>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>
